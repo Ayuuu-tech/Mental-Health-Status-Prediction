@@ -132,7 +132,6 @@ st.sidebar.markdown('Fill in your lifestyle details below')
 st.sidebar.subheader('👤 Personal')
 age = st.sidebar.slider('Age', 15, 80, 25)
 gender = st.sidebar.selectbox('Gender', ['Male', 'Female', 'Other'])
-stress = st.sidebar.select_slider('Stress Level', ['Low', 'Medium', 'High'])
 
 # Daily Activities
 st.sidebar.subheader('⏱️ Daily Hours')
@@ -157,7 +156,6 @@ user_data = {
     'Social_Media_Usage_Hours': social_hours,
     'Gaming_Hours': gaming_hours,
     'Screen_Time_Hours': screen_hours,
-    'Stress_Level': encodings['Stress_Level'][stress],
     'Sleep_Hours': sleep_hours,
     'Physical_Activity_Hours': exercise_hours,
     'Support_Systems_Access': encodings['Support_Systems_Access'][support],
@@ -179,9 +177,6 @@ if predict_button:
             pred_int = int(model.predict(input_df)[0])
             proba = model.predict_proba(input_df)[0]
             mh_label = inverse_map.get(pred_int, 'Unknown')
-            
-            # Stress status
-            stressed_flag = 'Stressed' if stress in ['Medium', 'High'] else 'Not Stressed'
             
             # Anxiety heuristic
             total_screen = tech_hours + screen_hours
@@ -235,10 +230,6 @@ if predict_button:
             insight_col1, insight_col2 = st.columns(2)
             
             with insight_col1:
-                if stressed_flag:
-                    stress_icon = '😰' if stressed_flag == 'Stressed' else '😌'
-                    st.info(f'{stress_icon} **Stress Status:** {stressed_flag}')
-                
                 st.info(f'{anxiety_color} **Anxiety Level:** {anxiety_level}')
             
             with insight_col2:
