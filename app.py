@@ -59,7 +59,8 @@ if latest_pkl is None:
     st.info('💡 Open `Mini Project.ipynb` and execute the Mental Health Classification Training cell.')
     st.stop()
 
-# Load model
+# Load model (guaranteed to have latest_pkl at this point)
+assert latest_pkl is not None, "Model path should not be None"
 with open(latest_pkl, 'rb') as f:
     model_data = pickle.load(f)
 
