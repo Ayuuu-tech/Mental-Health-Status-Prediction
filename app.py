@@ -1,5 +1,5 @@
 import streamlit as st
-import pickle, os
+import pickle, os, datetime
 import numpy as np
 import pandas as pd
 
@@ -46,7 +46,56 @@ st.markdown("""
 st.markdown('<p class="main-header">🧠 Mental Health Status Predictor</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">AI-powered assessment based on lifestyle & technology usage patterns</p>', unsafe_allow_html=True)
 
-# Locate latest pickle
+from sklearn.ensemble import RandomForestClassifier
+
+# ---------------- Fallback Training Logic -----------------
+def train_and_save():
+    """Train a fresh RandomForest model using cleaned_data.csv and persist pickle."""
+    data_path = 'cleaned_data.csv'
+    if not os.path.isfile(data_path):
+        st.error('Dataset cleaned_data.csv not found for training.')
+        st.stop()
+    df = pd.read_csv(data_path)
+    status_map = {'Excellent': 'Good', 'Good': 'Good', 'Fair': 'Moderate', 'Poor': 'Poor'}
+    df['target_label'] = df['Mental_Health_Status'].map(status_map)
+    target_map = {'Good': 0, 'Moderate': 1, 'Poor': 2}
+    df['target'] = df['target_label'].map(target_map)
+    features_local = [
+        'Age','Gender','Technology_Usage_Hours','Social_Media_Usage_Hours','Gaming_Hours','Screen_Time_Hours',
+        'Stress_Level','Sleep_Hours','Physical_Activity_Hours','Support_Systems_Access','Work_Environment_Impact','Online_Support_Usage'
+    ]
+    X = df[features_local].copy()
+    y = df['target']
+    encodings = {
+        'Gender': {'Male':1,'Female':0,'Other':2},
+        'Stress_Level': {'Low':0,'Medium':1,'High':2},
+        'Support_Systems_Access': {'Yes':1,'No':0},
+        'Work_Environment_Impact': {'Positive':1,'Neutral':0,'Negative':-1},
+        'Online_Support_Usage': {'Yes':1,'No':0}
+    }
+    # apply encodings
+    for col, mapping in encodings.items():
+        X[col] = X[col].map(mapping)
+    # Train
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    model_local = RandomForestClassifier(n_estimators=200, max_depth=15, random_state=42, n_jobs=-1)
+    model_local.fit(X_train, y_train)
+    # Persist
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    pkl_path = os.path.join(MODEL_DIR, f'mh_model_{stamp}.pkl')
+    model_data_local = {
+        'model': model_local,
+        'features': features_local,
+        'inverse_map': {v:k for k,v in target_map.items()},
+        'encodings': encodings
+    }
+    with open(pkl_path,'wb') as f:
+        pickle.dump(model_data_local,f)
+    return model_data_local, pkl_path
+
+# Locate latest pickle or train fallback
 MODEL_DIR = 'models'
 latest_pkl = None
 if os.path.isdir(MODEL_DIR):
@@ -54,28 +103,26 @@ if os.path.isdir(MODEL_DIR):
     if pkls:
         latest_pkl = os.path.join(MODEL_DIR, pkls[-1])
 
+model_data = None
 if latest_pkl is None:
-    st.error('⚠️ No trained model found. Please run the training cell in the notebook first.')
-    st.info('💡 Open `Mini Project.ipynb` and execute the Mental Health Classification Training cell.')
-    st.stop()
-
-# Load model (guaranteed to have latest_pkl at this point)
-assert latest_pkl is not None, "Model path should not be None"
-with open(latest_pkl, 'rb') as f:
-    model_data = pickle.load(f)
-
-# Handle both old and new pickle formats
-if 'features' in model_data:
-    # New simplified format
-    model = model_data['model']
-    features = model_data['features']
-    inverse_map = model_data['inverse_map']
-    encodings = model_data['encodings']
+    st.warning('No existing model found. Training a new model now...')
+    model_data, latest_pkl = train_and_save()
 else:
-    # Old complex format - need to recreate
-    st.error('❌ Old model format detected. Please run the training cell in the notebook again to generate a new model.')
-    st.info('💡 Open `Mini Project.ipynb` and execute cell 78 (Mental Health Prediction Model)')
-    st.stop()
+    try:
+        with open(latest_pkl,'rb') as f:
+            model_data = pickle.load(f)
+        if 'features' not in model_data:
+            st.warning('Legacy model format detected. Re-training new model...')
+            model_data, latest_pkl = train_and_save()
+    except Exception as e:
+        st.warning(f'Failed to load model ({e}). Re-training...')
+        model_data, latest_pkl = train_and_save()
+
+# Extract necessary objects
+model = model_data['model']
+features = model_data['features']
+inverse_map = model_data['inverse_map']
+encodings = model_data['encodings']
 
 # Sidebar
 st.sidebar.header('📊 Enter Your Information')
