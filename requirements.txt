@@ -1,18 +1,4 @@
-# Put numpy first so binary wheels are found before pandas build
-numpy==1.26.4
-
-# stable pandas release that works with numpy 1.26
 pandas==2.2.2
-
-# scientific stack
-scipy==1.11.3
-
-# use a stable scikit-learn 1.3.x instead of 1.4.x which is pulling rc numpy
-scikit-learn==1.3.2
-
-# core runtime
-streamlit==1.28.0
-
-# common extras your app might need
-matplotlib==3.8.2
-joblib==1.3.2
+scikit-learn==1.5.2
+numpy==1.26.4
+streamlit==1.39.0
