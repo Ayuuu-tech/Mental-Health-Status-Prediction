@@ -156,6 +156,7 @@ user_data = {
     'Social_Media_Usage_Hours': social_hours,
     'Gaming_Hours': gaming_hours,
     'Screen_Time_Hours': screen_hours,
+    'Stress_Level': encodings['Stress_Level']['Low'],  # Default to Low since removed from UI
     'Sleep_Hours': sleep_hours,
     'Physical_Activity_Hours': exercise_hours,
     'Support_Systems_Access': encodings['Support_Systems_Access'][support],
